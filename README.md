@@ -75,9 +75,9 @@ git submodule update --init --force --recursive
 ### 構建
 
 ```zsh
-sudo service docker start
-
 sudo chmod 666 /var/run/docker.sock
+
+sudo service docker start
 
 ./tools/toolchain/dbuild ./configure.py --mode dev
 ./tools/toolchain/dbuild ninja -j $(nproc --all)
@@ -86,11 +86,11 @@ sudo chmod 666 /var/run/docker.sock
 ### 執行
 
 ```zsh
-sudo service docker start
-
 sudo chmod 666 /var/run/docker.sock
 
-./tools/toolchain/dbuild ./build/dev/scylla --developer-mode 1 --workdir tmp --smp 1 --overprovisioned
+sudo service docker start
+
+./tools/toolchain/dbuild ./build/dev/scylla --developer-mode 1 --workdir tmp --smp 1 --overprovisioned --compaction-enforce-min-threshold 1
 ```
 
 ## CQLSH
@@ -138,6 +138,16 @@ cd ycsb-scylla-binding-0.18.0-SNAPSHOT
 ### 執行
 
 ```zsh
+cqlsh -e "DROP KEYSPACE IF EXISTS ycsb"
+
+rm -rf ~/scylla/tmp/data/ycsb
+
+###
+
+# ls -alh ~/scylla/tmp/data
+
+###
+
 # cqlsh -e "Expand ON; SELECT * FROM system_schema.keyspaces"
 
 cqlsh -e "CREATE KEYSPACE IF NOT EXISTS ycsb WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}"
@@ -148,7 +158,7 @@ cqlsh -e "CREATE KEYSPACE IF NOT EXISTS ycsb WITH replication = {'class': 'Simpl
 
 # cqlsh -e "Expand ON; SELECT * FROM system_schema.tables WHERE keyspace_name = 'ycsb'"
 
-cqlsh -e "CREATE TABLE IF NOT EXISTS ycsb.usertable (y_id varchar primary key, field0 varchar, field1 varchar, field2 varchar, field3 varchar, field4 varchar, field5 varchar, field6 varchar, field7 varchar, field8 varchar, field9 varchar)"
+cqlsh -e "CREATE TABLE IF NOT EXISTS ycsb.usertable (y_id varchar primary key, field0 varchar, field1 varchar, field2 varchar, field3 varchar, field4 varchar, field5 varchar, field6 varchar, field7 varchar, field8 varchar, field9 varchar) WITH compaction = {'class' : 'SizeTieredCompactionStrategy', 'min_threshold' : 4, 'max_threshold': 4}"
 
 # cqlsh -e "Expand ON; SELECT * FROM system_schema.tables WHERE keyspace_name = 'ycsb'"
 
@@ -163,14 +173,4 @@ cqlsh -e "CREATE TABLE IF NOT EXISTS ycsb.usertable (y_id varchar primary key, f
 ###
 
 ls -alh ~/scylla/tmp/data/ycsb/*/*.db | grep Data
-
-###
-
-cqlsh -e "DROP KEYSPACE IF EXISTS ycsb"
-
-rm -rf ~/scylla/tmp/data/ycsb
-
-###
-
-ls -alh ~/scylla/tmp/data
 ```
