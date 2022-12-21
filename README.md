@@ -21,6 +21,12 @@
     - [構建](#構建-1)
     - [安裝](#安裝-1)
     - [執行](#執行-1)
+* [Cassandra](#cassandra)
+    - [下載](#下載-2)
+    - [配置](#配置)
+    - [執行](#執行-2)
+* [YCSB](#ycsb-1)
+    - [執行](#執行-3)
 
 <!-- vim-markdown-toc -->
 
@@ -173,4 +179,50 @@ cqlsh -e "CREATE TABLE IF NOT EXISTS ycsb.usertable (y_id varchar primary key, f
 ###
 
 ls -alh ~/scylla/tmp/data/ycsb/*/*.db | grep Data
+```
+
+## Cassandra
+
+### 下載
+
+```zsh
+wget http://archive.apache.org/dist/cassandra/4.1.0/apache-cassandra-4.1.0-bin.tar.gz
+
+tar xzvf apache-cassandra-4.1.0-bin.tar.gz
+
+cd apache-cassandra-4.1.0
+```
+
+### 配置
+
+-   conf/cassandra.yaml
+
+```yaml
+memtable_flush_writers: 1
+memtable_heap_space: 9MiB
+# flush_compression: none
+```
+
+### 執行
+
+```zsh
+bin/cassandra -f
+```
+
+## YCSB
+
+### 執行
+
+```zsh
+cqlsh -e "DROP KEYSPACE IF EXISTS ycsb"
+
+rm -rf ~/apache-cassandra-4.1.0/data/data/ycsb
+
+cqlsh -e "CREATE KEYSPACE IF NOT EXISTS ycsb WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}"
+
+cqlsh -e "CREATE TABLE IF NOT EXISTS ycsb.usertable (y_id varchar primary key, field0 varchar, field1 varchar, field2 varchar, field3 varchar, field4 varchar, field5 varchar, field6 varchar, field7 varchar, field8 varchar, field9 varchar) WITH compaction = {'class' : 'SizeTieredCompactionStrategy', 'min_threshold' : 4, 'max_threshold': 4} AND compression = {'enabled': 'false'}"
+
+~/ycsb-scylla-binding-0.18.0-SNAPSHOT/bin/ycsb load scylla -s -P ~/ycsb-scylla-binding-0.18.0-SNAPSHOT/workloads/workloada -threads $(nproc --all) -p scylla.hosts=localhost -p recordcount=10000000 -p requestdistribution=sequential
+
+ls -alh ~/apache-cassandra-4.1.0/data/data/ycsb/*/*.db | grep Data
 ```
